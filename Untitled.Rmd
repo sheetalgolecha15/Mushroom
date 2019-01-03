@@ -1,0 +1,287 @@
+---
+title: "MUsh"
+author: "Sheetal"
+date: "11/17/2018"
+output: html_document
+---
+
+read the dataset and checked the column data.
+
+```{r setup, include=FALSE}
+Mush1 <- read.csv("train.csv")
+dim(Mush1)
+#Mush1<-Mush1[,2:24]
+#unique(Mush1$V1)
+```
+
+## R Markdown
+
+Converted the data into binary data.
+
+```{r cars}
+
+break_columns<-function(Mush_df)
+{
+  Mush_df<-Mush_df[,2:24]
+for (i in colnames(Mush_df))
+{
+  if(i!="V1") {
+ 
+  x<-unique(Mush_df[[i]])
+  len<-length(x)
+  
+  if (len>=2) {
+    for (K in 1:len){
+      new_col<-paste0(i,"_",x[K])
+      Mush_df[[new_col]]<- Mush_df[[i]]
+      Mush_df[[new_col]]<-ifelse(Mush_df[[i]]==x[K],1,0)
+    }
+  
+  }
+  }
+}
+  Mush_df<-Mush_df[c(1,24:138)]
+  return(Mush_df)
+}
+#Mush<-Mush[,24:118]
+```
+
+## Including Plots
+
+removed the initial data 
+
+```{r pressure, echo=FALSE}
+#Mush[ -c(1, 3:6, 12) ]
+#head(Mush)
+Mush<-break_columns(Mush1)
+
+
+```
+
+Calculated entorpy of the dataset to identify the column which will give better result while classiffying.
+
+```{r}
+
+Entropy<-list()
+j=0
+for (i in colnames(Mush)){
+  if(i!="V1") {
+  E<-table(Mush[[i]],Mush$V1)
+  S<-nrow(E)
+  Ent<-0
+  for( K in 1:S) {
+    if(E[2,K]!=0){
+  Ent =E[2,K]/sum(E[2,])*log(1/(E[2,K]/sum(E[2,])))+Ent
+    }
+  }
+   Entropy[j]<-Ent
+  j=j+1
+}
+  }
+```
+
+Calculated Gini_index of the dataset to identify the column which will give better result while classiffying.
+
+
+```{r}
+
+Gini_index<-list()
+j=0
+for (i in colnames(Mush)){
+  if(i!="V1") {
+  E<-table(Mush[[i]],Mush$V1)
+  S<-nrow(E)
+  Ent<-0
+  for( K in 1:S) {
+    if(E[2,K]!=0){
+  Ent =E[2,K]/sum(E[2,])*E[2,K]/sum(E[2,])+Ent
+    }
+  }
+   Gini_index[j]<-Ent
+  j=j+1
+}
+  }
+
+```
+
+Calculated accuracy of the dataset to identify the column which will give better result while classiffying.
+
+
+```{r}
+Accuracy<-list()
+j=0
+for (i in colnames(Mush)){
+  if(i!="V1") {
+  E<-table(Mush[[i]],Mush$V1)
+  S<-nrow(E)
+  Ent<-list()
+  for( K in 1:S) {
+    
+  Ent[K] =E[2,K]/sum(E[2,])
+    
+  }
+   Accuracy[j]<-Ent[which.max(Ent)]
+  j=j+1
+}
+  }
+```
+
+created dataset with all the above data
+
+```{r}
+j=0
+column_names<-list()
+for (i in colnames(Mush))
+{
+  if(i!="V1") {
+    
+  column_names[j] <- i
+  j=j+1
+  }
+}
+```
+
+```{r}
+C_name<-as.data.frame(unlist(column_names))
+colnames(C_name)[1] <- "C_name"
+```
+
+```{r}
+Accuracy<-as.data.frame(unlist(Accuracy))
+colnames(Accuracy)[1] <- "Accuracy"
+Gini_index<-as.data.frame(unlist(Gini_index))
+colnames(Gini_index)[1] <- "Gini_index"
+Entropy<-as.data.frame(unlist(Entropy))
+colnames(Entropy)[1] <- "Entropy"
+
+```
+
+```{r}
+Final<-cbind(C_name,Accuracy,Gini_index,Entropy)
+  
+```
+
+```{r}
+Final$Entropy<-1-Final$Entropy
+```
+
+Fina plot to check which columns are relevant.
+
+```{r}
+plot(Final$Entropy,Final$Accuracy)
+with(Final, text(Entropy~Accuracy, labels = row.names(Final)))
+
+```
+
+NAive BAyers classifier loading library
+
+```{r}
+library(e1071)
+library(rpart)
+
+```
+
+
+
+```{r}
+
+
+
+testing<-read.csv("test.csv")
+test<-break_columns(testing)
+
+
+Mush_train<-Mush[c("V1","V10_b","V10_e","V10_k","V10_n","V10_o","V10_r","V10_u","V12_c","V12_r","V13_k","V14_k","V15_b","V15_c","V15_e","V15_g","V15_n","V15_o","V15_y","V16_b","V16_c","V16_e","V16_g","V16_n","V16_o","V16_y",
+"V18_n","V18_o","V18_y","V19_n","V19_t","V2_b","V2_c","V2_s","V20_f","V20_l","V20_n","V21_b","V21_h","V21_k","V21_n","V21_o","V21_r","V21_u","V21_y","V22_a","V22_n","V23_m","V23_p","V23_w","V3_g","V6_m","V6_n","V6_s","V6_y","V7_a","V8_w","V9_n")]
+
+Mush_test<-test[c("V1","V10_b","V10_e","V10_k","V10_n","V10_o","V10_r","V10_u","V12_c","V12_r","V13_k","V14_k","V15_b","V15_c","V15_e","V15_g","V15_n","V15_o","V15_y","V16_b","V16_c","V16_e","V16_g","V16_n","V16_o","V16_y",
+"V18_n","V18_o","V18_y","V19_n","V19_t","V2_b","V2_c","V2_s","V20_f","V20_l","V20_n","V21_b","V21_h","V21_k","V21_n","V21_o","V21_r","V21_u","V21_y","V22_a","V22_n","V23_m","V23_p","V23_w","V3_g","V6_m","V6_n","V6_s","V6_y","V7_a","V8_w","V9_n")]
+
+
+```
+
+
+
+```{r}
+
+accuracy_test<-list()
+accuracy_train<-list()
+
+for (i in 0:51)
+{
+Classify = naiveBayes(Mush_train[,2:58],Mush_train[,1],laplace=i)
+
+Mush_train["predicted"]<-predict(Classify, Mush_train[,2:58])
+Mush_test["predicted"]<-predict(Classify, Mush_test[,2:58])
+accu_test<-table(Mush_test$predicted,Mush_test$V1)
+accu_train<-table(Mush_train$predicted,Mush_train$V1)
+#print(table(Mush_test$predicted))
+accuracy_test[i]<-(accu_test[1]+accu_test[4])/nrow(Mush_test)
+accuracy_train[i]<-(accu_train[1]+accu_train[4])/nrow(Mush_train)
+
+Mush_train=subset(Mush_train, select = -c(predicted) )
+Mush_test=subset(Mush_test, select = -c(predicted) )
+}
+
+```
+
+```{r}
+accuracy_test<-as.data.frame(unlist(accuracy_test))
+colnames(accuracy_test)[1] <- "accuracy_test"
+accuracy_train<-as.data.frame(unlist(accuracy_train))
+colnames(accuracy_train)[1] <- "accuracy_train"
+lambda<-seq(0,50)
+lambda<-as.data.frame(unlist(lambda))
+colnames(lambda)[1] <- "lambda"
+Nb_accuracy<-cbind(lambda,accuracy_train,accuracy_test)
+
+```
+
+```{r}
+plot(Nb_accuracy$lambda,Nb_accuracy$accuracy_train,type="l")
+plot(Nb_accuracy$lambda,Nb_accuracy$accuracy_test,type="l")
+```
+
+```{r}
+C<-seq(4,64,4)
+
+
+accuracy_test_tree<-list()
+accuracy_train_tree<-list()
+
+for (i in list(C))
+{
+  tree1 <- rpart(V1 ~ ., data = Mush_train,method="class",control=list(maxdepth = i))
+Mush_test['predicted']<-predict(tree1,Mush_test[,2:58],type="class")
+Mush_train['predicted']<-predict(tree1,Mush_train[,2:58],type="class")
+ accu_test<-table(Mush_test$predicted,Mush_test$V1)
+accu_train<-table(Mush_train$predicted,Mush_train$V1)
+
+accuracy_test_tree[i]<-(accu_test[1]+accu_test[4])/nrow(Mush_test)
+accuracy_train_tree[i]<-(accu_train[1]+accu_train[4])/nrow(Mush_train)
+ Mush_train=subset(Mush_train, select = -c(predicted) )
+Mush_test=subset(Mush_test, select = -c(predicted) ) 
+}
+dim(Mush_train)
+#plot(tree1)
+```
+
+
+
+```{r}
+accuracy_test_tree<-as.data.frame(unlist(accuracy_test_tree))
+colnames(accuracy_test_tree)[1] <- "accuracy_test_tree"
+accuracy_train_tree<-as.data.frame(unlist(accuracy_train_tree))
+colnames(accuracy_train_tree)[1] <- "accuracy_train_tree"
+depth<-C
+depth<-as.data.frame(unlist(depth))
+colnames(depth)[1] <- "depth"
+Dt_accuracy<-cbind(depth,accuracy_train_tree,accuracy_test_tree)
+
+```
+
+```{r}
+plot(Dt_accuracy$depth,Dt_accuracy$accuracy_train_tree,type="l")
+plot(Dt_accuracy$depth,Dt_accuracy$accuracy_test_tree,type="l")
+```
+
